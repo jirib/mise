@@ -124,7 +124,7 @@ jobs:
       # bootstrap a fresh checkout. `cargo patch` (the subcommand) must
       # run once, first.
       - name: cargo install cargo-patch
-        run: cargo install cargo-patch --locked
+        run: cargo install cargo-patch
 
       - name: cargo patch
         run: cargo patch
