@@ -245,7 +245,6 @@ winapi = { version = "0.3.9", features = ["consoleapi", "minwindef"] }
 [build-dependencies]
 aqua-registry = { path = "crates/aqua-registry" }
 built = { version = "0.8", features = ["chrono"] }
-cargo-patch = "0.3"
 cfg_aliases = "0.2"
 eyre = "0.6"
 heck = "0.5"
@@ -328,8 +327,10 @@ borrowed_box = "allow"
 
 # rattler_pty (a transitive dep of rattler, used by the conda backend) has
 # hand-written ptsname_r() shims per-platform but is missing one for
-# openbsd, which fails to compile there. cargo-patch (build.rs) downloads
-# the unmodified upstream crate and applies patches/*.patch on top of it.
+# openbsd, which fails to compile there. scripts/apply-vendor-patches.sh
+# downloads the unmodified upstream crate and applies patches/*.patch on
+# top of it into target/patch/ -- must run before `cargo build` (cargo
+# resolves [patch.crates-io] path entries before any build.rs runs).
 # Remove once upstream (conda/rattler) adds OpenBSD support:
 # https://github.com/conda/rattler/pull/2524
 #
@@ -338,14 +339,6 @@ borrowed_box = "allow"
 [patch.crates-io]
 rattler_pty = { path = "./target/patch/rattler_pty-0.2.13" }
 envmnt = { path = "./target/patch/envmnt-0.10.4" }
-
-[package.metadata.patch.rattler_pty]
-version = "0.2.13"
-patches = ["patches/rattler_pty-0.2.13-openbsd-ptsname_r.patch"]
-
-[package.metadata.patch.envmnt]
-version = "0.10.4"
-patches = ["patches/envmnt-0.10.4-build-std-compat.patch"]
 
 [profile.dev]
 debug = 1

@@ -17,9 +17,6 @@ fn main() -> Result<()> {
         linux: { target_os = "linux" },
         vfox: { any(feature = "vfox", target_os = "windows") },
     }
-    println!("cargo:rerun-if-changed=Cargo.toml");
-    println!("cargo:rerun-if-changed=patches/");
-    cargo_patch::patch().expect("failed to apply patches/");
     built::write_built_file()?;
 
     codegen_settings();
