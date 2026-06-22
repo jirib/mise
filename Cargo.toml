@@ -332,6 +332,13 @@ borrowed_box = "allow"
 # Remove once upstream (conda/rattler) adds OpenBSD support.
 [patch.crates-io]
 rattler_pty = { path = "vendor/rattler_pty-0.2.13" }
+# envmnt (a dep of ci_info) pins indexmap "^1", whose IndexMap<K, V, S>
+# generic-arity defaulting breaks under `cargo -Z build-std` (needed to
+# cross-build tier-3 targets like openbsd) against a from-source std.
+# vendor/envmnt-0.10.4 is unmodified envmnt source with only the
+# indexmap requirement bumped to "^2" -- envmnt's usage is limited to
+# IndexMap::new()/type annotations, fully compatible either way.
+envmnt = { path = "vendor/envmnt-0.10.4" }
 
 [profile.dev]
 debug = 1
