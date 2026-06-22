@@ -117,6 +117,18 @@ jobs:
             echo "BINDGEN_EXTRA_CLANG_ARGS_${t}=${flags}"
           } >> "$GITHUB_ENV"
 
+      # Cargo resolves [patch.crates-io] path entries before any build.rs
+      # runs (build scripts are themselves part of what resolution must
+      # already know about), so target/patch/<crate> has to exist before
+      # `cargo build` ever starts -- the build.rs hook alone can't
+      # bootstrap a fresh checkout. `cargo patch` (the subcommand) must
+      # run once, first.
+      - name: cargo install cargo-patch
+        run: cargo install cargo-patch --locked
+
+      - name: cargo patch
+        run: cargo patch
+
       - name: cargo build --target x86_64-unknown-openbsd
         run: |
           cargo "+$RUST_NIGHTLY" build \
