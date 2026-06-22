@@ -71,6 +71,28 @@ jobs:
           EOF
           cat .cargo/config.toml
 
+      # rustc's own linker flags (above) only cover the final link step.
+      # Build-dependency C code (e.g. aws-lc-sys, zstd-sys) is compiled by
+      # the `cc` crate directly, which doesn't read .cargo/config.toml at
+      # all -- it needs these CC_*/CFLAGS_*/AR_* env vars instead, or it
+      # silently falls back to the host's native cc with no sysroot, which
+      # mismatches whatever target_os-specific flags the *-sys crate adds.
+      - name: Configure cc-rs env vars for openbsd C cross-compilation
+        run: |
+          # cc-rs (and bindgen) key these off the target triple with
+          # hyphens replaced by underscores, since shells can't export
+          # hyphenated names.
+          t="x86_64_unknown_openbsd"
+          flags="--target=x86_64-unknown-openbsd${OPENBSD_VERSION} --sysroot=${OPENBSD_SYSROOT}"
+          {
+            echo "CC_${t}=clang"
+            echo "CXX_${t}=clang++"
+            echo "AR_${t}=llvm-ar"
+            echo "CFLAGS_${t}=${flags}"
+            echo "CXXFLAGS_${t}=${flags}"
+            echo "BINDGEN_EXTRA_CLANG_ARGS_${t}=${flags}"
+          } >> "$GITHUB_ENV"
+
       - name: cargo build --target x86_64-unknown-openbsd
         run: |
           cargo +nightly build \
