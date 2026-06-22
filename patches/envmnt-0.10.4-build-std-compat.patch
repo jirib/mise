@@ -13,17 +13,22 @@ fine as-is on a normal stable/prebuilt-std build:
    visible as "unused" under that lint, which envmnt denies as a hard
    error rather than warns.
 
+Note: Cargo.toml here is crates.io's auto-normalized published form
+(verbose [dependencies.foo] dotted-table style), not the raw GitHub
+repo's Cargo.toml -- that's what scripts/apply-vendor-patches.sh
+actually downloads and patches against.
+
 --- Cargo.toml
 +++ Cargo.toml
-@@ -25,7 +25,7 @@
+@@ -45,7 +45,7 @@
+ version = "^0.4"
  
- [dependencies]
- fsio = "^0.4"
--indexmap = "^1"
-+indexmap = "^2"
+ [dependencies.indexmap]
+-version = "^1"
++version = "^2"
  
- [dev-dependencies]
- doc-comment = "^0.3"
+ [dev-dependencies.doc-comment]
+ version = "^0.3"
 
 --- src/lib.rs
 +++ src/lib.rs
