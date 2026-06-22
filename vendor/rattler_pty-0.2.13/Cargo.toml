@@ -1,0 +1,19 @@
+[package]
+exclude = ["tests/**"]
+name = "rattler_pty"
+version = "0.2.13"
+description = "A crate to create pty"
+categories = ["development-tools"]
+homepage = "https://github.com/conda/rattler"
+repository = "https://github.com/conda/rattler"
+license = "BSD-3-Clause"
+edition = "2024"
+readme = "README.md"
+
+[dependencies]
+tokio = { version = "1", features = ["io-util", "fs", "time"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = { version = "0.2" }
+nix = { version = "0.30.1", features = ["fs", "signal", "term", "poll"] }
+signal-hook = "0.3.18"
