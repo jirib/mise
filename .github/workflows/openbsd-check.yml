@@ -10,13 +10,15 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  OPENBSD_VERSION: "7.9"
+  OPENBSD_SYSROOT: ${{ github.workspace }}/openbsd-sysroot
 
 permissions:
   contents: read
 
 jobs:
-  check-openbsd:
-    name: cargo check --target x86_64-unknown-openbsd
+  build-openbsd:
+    name: cargo build --target x86_64-unknown-openbsd (real cross-link)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -24,20 +26,54 @@ jobs:
 
       # x86_64-unknown-openbsd is a tier-3 rustc target: no prebuilt `std` is
       # shipped, so `rustup target add` doesn't work for it. Cross-building
-      # std from source via `-Z build-std` (nightly + rust-src) is the way to
-      # type-check against it without a real OpenBSD machine. This only ever
-      # runs `cargo check`, not `build` -- actually linking would need a real
-      # OpenBSD sysroot/cross-linker, which this runner doesn't have.
+      # std from source via `-Z build-std` (nightly + rust-src) is required
+      # regardless of check vs build.
       - name: Install nightly toolchain with rust-src
         run: rustup toolchain install nightly --component rust-src
 
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
-          shared-key: openbsd-check
+          shared-key: openbsd-build
 
-      - name: cargo check --target x86_64-unknown-openbsd
+      # base+comp give us /usr/include and /usr/lib for an OpenBSD 7.9
+      # amd64 install -- enough for clang/lld to cross-link against,
+      # without needing a real OpenBSD machine. `--exclude ./dev` skips
+      # device nodes tar can't recreate as a non-root, non-OpenBSD host.
+      - name: Download and extract OpenBSD ${{ env.OPENBSD_VERSION }} base/comp sets
         run: |
-          cargo +nightly check \
+          mkdir -p "$OPENBSD_SYSROOT"
+          cd "$OPENBSD_SYSROOT"
+          ver_nodot="${OPENBSD_VERSION/./}"
+          curl -sSfL -O "https://cdn.openbsd.org/pub/OpenBSD/${OPENBSD_VERSION}/amd64/base${ver_nodot}.tgz"
+          curl -sSfL -O "https://cdn.openbsd.org/pub/OpenBSD/${OPENBSD_VERSION}/amd64/comp${ver_nodot}.tgz"
+          sudo tar xzpf "base${ver_nodot}.tgz" --exclude='./dev' -C "$OPENBSD_SYSROOT"
+          sudo tar xzpf "comp${ver_nodot}.tgz" --exclude='./dev' -C "$OPENBSD_SYSROOT"
+          sudo chown -R "$(id -u):$(id -g)" "$OPENBSD_SYSROOT"
+          ls "$OPENBSD_SYSROOT/usr/include" | head
+          ls "$OPENBSD_SYSROOT/usr/lib" | head
+
+      - name: Install clang/lld for cross-linking
+        run: sudo apt-get update && sudo apt-get install -y clang lld
+
+      - name: Configure cargo for the openbsd cross target
+        run: |
+          mkdir -p .cargo
+          ver="${OPENBSD_VERSION}"
+          cat > .cargo/config.toml <<EOF
+          [target.x86_64-unknown-openbsd]
+          linker = "clang"
+          rustflags = [
+            "-C", "link-arg=--target=x86_64-unknown-openbsd${ver}",
+            "-C", "link-arg=--sysroot=${OPENBSD_SYSROOT}",
+            "-C", "link-arg=-fuse-ld=lld",
+            "-C", "link-arg=-L${OPENBSD_SYSROOT}/usr/lib",
+          ]
+          EOF
+          cat .cargo/config.toml
+
+      - name: cargo build --target x86_64-unknown-openbsd
+        run: |
+          cargo +nightly build \
             -Z build-std=std,panic_abort \
             --target x86_64-unknown-openbsd \
             --no-default-features \
