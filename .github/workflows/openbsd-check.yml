@@ -12,6 +12,10 @@ env:
   RUST_BACKTRACE: 1
   OPENBSD_VERSION: "7.9"
   OPENBSD_SYSROOT: ${{ github.workspace }}/openbsd-sysroot
+  # bare `nightly` broke envmnt (an indexmap-arity mismatch, smells like
+  # ongoing allocator_api churn under -Z build-std) -- pin to an older
+  # dated nightly to dodge that, new enough for edition 2024/let-chains.
+  RUST_NIGHTLY: nightly-2026-03-01
 
 permissions:
   contents: read
@@ -29,7 +33,7 @@ jobs:
       # std from source via `-Z build-std` (nightly + rust-src) is required
       # regardless of check vs build.
       - name: Install nightly toolchain with rust-src
-        run: rustup toolchain install nightly --component rust-src
+        run: rustup toolchain install "$RUST_NIGHTLY" --component rust-src
 
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
@@ -115,7 +119,7 @@ jobs:
 
       - name: cargo build --target x86_64-unknown-openbsd
         run: |
-          cargo +nightly build \
+          cargo "+$RUST_NIGHTLY" build \
             -Z build-std=std,panic_abort \
             --target x86_64-unknown-openbsd \
             --no-default-features \
