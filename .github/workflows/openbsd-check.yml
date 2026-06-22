@@ -52,6 +52,26 @@ jobs:
           ls "$OPENBSD_SYSROOT/usr/include" | head
           ls "$OPENBSD_SYSROOT/usr/lib" | head
 
+      # OpenBSD has no bare libfoo.so -- ld(1)/ld.so(1) resolve -lfoo against
+      # libfoo.so.major.minor by scanning for the right version (see the
+      # Porter's Handbook: "Understanding Shared Library Number Rules").
+      # That convention is implemented by OpenBSD's own linker driver, not
+      # by lld, so a generic cross-link silently falls back to the static
+      # .a and collides with crtbeginS.o. Pre-resolve it ourselves: symlink
+      # each libfoo.so to its highest available major.minor.
+      - name: Create unversioned .so symlinks for the cross-linker
+        run: |
+          cd "$OPENBSD_SYSROOT/usr/lib"
+          for f in lib*.so.*.*; do
+            [ -f "$f" ] || continue
+            base="${f%%.so.*}"
+            echo "$base $f"
+          done | sort -k1,1 -k2,2V | awk '{ link[$1]=$2 } END { for (b in link) print b, link[b] }' \
+          | while read -r base target; do
+              ln -sf "$target" "${base}.so"
+              echo "${base}.so -> $target"
+            done
+
       - name: Install clang/lld for cross-linking
         run: sudo apt-get update && sudo apt-get install -y clang lld llvm
 
