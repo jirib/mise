@@ -1,0 +1,37 @@
+Add an openbsd ptsname_r shim.
+
+OpenBSD has neither nix::pty::ptsname_r nor libc::ptsname_r -- only the
+POSIX ptsname(3). This mirrors the existing per-platform shims for
+linux/macos/freebsd/netbsd just above it in the same file; openbsd was
+the only unix target missing one, which made rattler_pty fail to
+compile there.
+
+Upstream PR: https://github.com/conda/rattler/pull/2524
+
+--- src/unix/pty_process.rs
++++ src/unix/pty_process.rs
+@@ -75,6 +75,24 @@
+     }
+ }
+ 
++#[cfg(target_os = "openbsd")]
++/// OpenBSD has neither `nix::pty::ptsname_r` nor `libc::ptsname_r` — only the
++/// POSIX `ptsname(3)`, which returns a pointer into a static buffer and is
++/// not thread-safe. Safe here because `PtyProcess::new` calls this once,
++/// synchronously, before forking.
++fn ptsname_r(fd: &PtyMaster) -> nix::Result<String> {
++    use std::ffi::CStr;
++
++    unsafe {
++        let ptr = libc::ptsname(fd.as_raw_fd());
++        if ptr.is_null() {
++            Err(nix::Error::last())
++        } else {
++            Ok(CStr::from_ptr(ptr).to_string_lossy().into_owned())
++        }
++    }
++}
++
+ #[cfg(target_os = "freebsd")]
+ /// FreeBSD implementation using FIODGNAME ioctl to get the slave pty name
+ fn ptsname_r(fd: &PtyMaster) -> nix::Result<String> {

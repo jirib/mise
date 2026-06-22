@@ -1,0 +1,37 @@
+Two changes, both only needed under `cargo -Z build-std` (required to
+cross-build tier-3 targets like x86_64-unknown-openbsd) -- envmnt builds
+fine as-is on a normal stable/prebuilt-std build:
+
+1. Cargo.toml: bump indexmap "^1" -> "^2". Upstream's ^1 pin causes
+   IndexMap<K, V, S> arity-defaulting errors (missing the S hasher
+   param) against a from-source-built std. indexmap 2.x doesn't hit
+   this; envmnt's own usage (IndexMap::new(), type annotations only --
+   no removed/renamed APIs) is fully compatible with 2.x as-is.
+2. src/lib.rs: drop unused_crate_dependencies from #![deny(...)].
+   Building std from source makes the implicit extern crate
+   alloc/core/compiler_builtins/panic_abort/panic_unwind/proc_macro
+   visible as "unused" under that lint, which envmnt denies as a hard
+   error rather than warns.
+
+--- Cargo.toml
++++ Cargo.toml
+@@ -25,7 +25,7 @@
+ 
+ [dependencies]
+ fsio = "^0.4"
+-indexmap = "^1"
++indexmap = "^2"
+ 
+ [dev-dependencies]
+ doc-comment = "^0.3"
+
+--- src/lib.rs
++++ src/lib.rs
+@@ -120,7 +120,6 @@
+     unused_attributes,
+     unused_braces,
+     unused_comparisons,
+-    unused_crate_dependencies,
+     unused_doc_comments,
+     unused_extern_crates,
+     unused_features,
