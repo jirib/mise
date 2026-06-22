@@ -53,7 +53,7 @@ jobs:
           ls "$OPENBSD_SYSROOT/usr/lib" | head
 
       - name: Install clang/lld for cross-linking
-        run: sudo apt-get update && sudo apt-get install -y clang lld
+        run: sudo apt-get update && sudo apt-get install -y clang lld llvm
 
       - name: Configure cargo for the openbsd cross target
         run: |
