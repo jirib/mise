@@ -6,7 +6,11 @@ linux/macos/freebsd/netbsd just above it in the same file; openbsd was
 the only unix target missing one, which made rattler_pty fail to
 compile there.
 
-Upstream PR: https://github.com/conda/rattler/pull/2524
+Upstream PR: https://github.com/conda/rattler/pull/2524 (merged
+2026-06-23 into main, identical to this patch). Not yet in a published
+release as of writing -- 0.2.13 (published 2026-06-02) is still the
+latest on crates.io. Remove this patch once a release newer than
+0.2.13 ships: https://crates.io/crates/rattler_pty/versions
 
 --- src/unix/pty_process.rs
 +++ src/unix/pty_process.rs

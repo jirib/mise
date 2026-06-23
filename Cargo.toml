@@ -331,8 +331,9 @@ borrowed_box = "allow"
 # downloads the unmodified upstream crate and applies patches/*.patch on
 # top of it into target/patch/ -- must run before `cargo build` (cargo
 # resolves [patch.crates-io] path entries before any build.rs runs).
-# Remove once upstream (conda/rattler) adds OpenBSD support:
-# https://github.com/conda/rattler/pull/2524
+# Fix merged upstream 2026-06-23 (https://github.com/conda/rattler/pull/2524)
+# but not yet in a published release -- remove this patch once
+# crates.io has a rattler_pty newer than 0.2.13.
 #
 # envmnt (a dep of ci_info) needs two build-std-only compatibility
 # patches -- see patches/envmnt-0.10.4-build-std-compat.patch for why.
